@@ -267,9 +267,11 @@ export class DeploymentManager implements IDeploymentManager {
                     deployUI.stop(status);
                     const output = {
                         aadAppUrl: answers.aadAppUrl,
+                        keys: deploymentProperties.outputs.keys.value,
+                        logicApp: deploymentProperties.outputs.LogicApp.value,
                         resourceGroupUrl,
                         troubleshootingGuide,
-                        website: deploymentProperties.outputs.azureWebsite.value,
+                        website: deploymentProperties.outputs.azureWebsite.value
                     };
                     fs.writeFileSync(fileName, JSON.stringify(output, null, 2));
                     console.log('Output saved to file: %s', `${chalk.cyan(fileName)}`);

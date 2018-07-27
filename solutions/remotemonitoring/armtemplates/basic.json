@@ -173,9 +173,23 @@
                 "description": "The Azure Event Hub SKU Capacity"
             }
         },
+        "notificationSystemEventHubName": {
+            "type": "string",
+            "defaultValue": "[concat('notificationSystemEventhub-', take(uniqueString(subscription().subscriptionId, resourceGroup().id, parameters('solutionName')), 5))]", 
+            "metadata": {
+                "description": "The name of the Event Hub"
+            }
+        },
         "eventHubAuthorizationName": {
             "type": "string",
             "defaultValue": "[concat('iothubroutes-', parameters('iotHubName'))]",
+            "metadata": {
+                "description": "Authorization Rule Name for Event Hub endpoint in Iot Hub"
+            }
+        },
+        "notificationSystemEventHubAuthorizationName": {
+            "type": "string",
+            "defaultValue": "[concat('streamAnalytics-', parameters('notificationSystemEventHubName'))]",
             "metadata": {
                 "description": "Authorization Rule Name for Event Hub endpoint in Iot Hub"
             }
@@ -580,12 +594,12 @@
         {
             "comments": "Azure Event Hub For Notification System",
             "type": "Microsoft.EventHub/namespaces/eventhubs",
-            "name": "[concat(parameters('eventHubNamespaceName'), '/', 'Hey')]",
+            "name": "[concat(parameters('eventHubNamespaceName'), '/', parameters('notificationSystemEventHubName'))]",
             "apiVersion": "[variables('eventHubApiVersion')]",
             "location": "[variables('location')]",
             "properties": {
-                "messageRetentionInDays": "1",
-                "partitionCount": "2",
+                "messageRetentionInDays": "[parameters('eventHubRetentionInDays')]",
+                "partitionCount": "[parameters('eventHubPartitionCount')]",
                 "status": "Active"
             },
             "dependsOn": [
@@ -594,8 +608,8 @@
         },        
         {
             "comments": "Event Hub Authorization for Streaming Agent",
-            "type": "Microsoft.EventHub/namespaces/eventhubs/AuthorizationRules",
-            "name": "[concat(parameters('eventHubNamespaceName'), '/', 'Hey', '/', 'authorize')]",
+            "type": "Microsoft.EventHub/namespaces/eventhubs/authorizationRules",
+            "name": "[concat(parameters('eventHubNamespaceName'), '/', parameters('notificationSystemEventHubName'), '/', parameters('notificationSystemEventHubAuthorizationName'))]",
             "apiVersion":  "[variables('eventHubApiVersion')]",
             "location": "[variables('location')]",
             "properties": {
@@ -604,7 +618,8 @@
                 ]
             },
             "dependsOn": [
-                "[variables('eventHubNamespaceResourceId')]"
+                "[variables('eventHubNamespaceResourceId')]",
+                "[resourceId('Microsoft.EventHub/namespaces/eventhubs', parameters('eventHubNamespaceName'), parameters('notificationSystemEventHubName'))]"
             ]
         },        
         {
@@ -829,6 +844,20 @@
                                     "accountKey": "[listkeys(variables('documentDBResourceId'), variables('documentDBApiVersion')).primaryMasterKey]",
                                     "database": "[variables('streamingJobsOutputDBName')]",
                                     "collectionNamePattern": "messages"
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "NotificationSystem",
+                        "properties":{
+                            "datasource": {
+                                "type": "Microsoft.ServiceBus/EventHub",
+                                "properties": {
+                                    "serviceBusNamespace": "[parameters('eventHubNamespaceName')]",
+                                    "sharedAccessPolicyName": "[parameters('notificationSystemEventHubAuthorizationName')]",
+                                    "sharedAccessPolicyKey": "[listkeys(resourceId('Microsoft.EventHub/namespaces/eventhubs/authorizationRules', parameters('eventHubNamespaceName'), parameters('notificationSystemEventHubName'), parameters('notificationSystemEventHubAuthorizationName')), variables('eventHubApiVersion')).primaryKey]",
+                                    "eventHubName": "[parameters('notificationSystemEventHubName')]"
                                 }
                             }
                         }
@@ -1290,6 +1319,14 @@
         "streamingJobsName": {
             "type": "string",
             "value": "[parameters('streamingJobsName')]"
+        },
+        "Keys":{
+            "type": "object",
+            "value": "[listkeys(resourceId('Microsoft.EventHub/namespaces/eventhubs/authorizationRules', parameters('eventHubNamespaceName'), parameters('notificationSystemEventHubName'), parameters('notificationSystemEventHubAuthorizationName')), variables('eventHubApiVersion'))]"
+        },
+        "LogicApp":{
+            "type": "object",
+            "value": "[listkeys(resourceId('Microsoft.Logic/workflows', 'NotificationLogicApp'), '2016-06-01')]"
         }
     }
 }
