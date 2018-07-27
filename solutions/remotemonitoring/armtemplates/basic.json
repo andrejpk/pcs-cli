@@ -576,6 +576,36 @@
             "dependsOn": [
                 "[variables('eventHubNamespaceResourceId')]"
             ]
+        },
+        {
+            "comments": "Azure Event Hub For Notification System",
+            "type": "Microsoft.EventHub/namespaces/eventhubs",
+            "name": "[concat(parameters('eventHubNamespaceName'), '/', 'Hey')]",
+            "apiVersion": "[variables('eventHubApiVersion')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "messageRetentionInDays": "1",
+                "partitionCount": "2",
+                "status": "Active"
+            },
+            "dependsOn": [
+                "[variables('eventHubNamespaceResourceId')]"
+            ]
+        },        
+        {
+            "comments": "Event Hub Authorization for Streaming Agent",
+            "type": "Microsoft.EventHub/namespaces/eventhubs/authorizationRules",
+            "name": "[concat(parameters('eventHubNamespaceName'), '/', 'Hey', '/', 'authorize')]",
+            "apiVersion":  "[variables('eventHubApiVersion')]",
+            "location": "[variables('location')]",
+            "properties": {
+                "rights": [
+                    "Send"
+                ]
+            },
+            "dependsOn": [
+                "[variables('eventHubNamespaceResourceId')]",
+            ]
         },        
         {
             "comments": "Event Hub Authorization for Iot Hub",
